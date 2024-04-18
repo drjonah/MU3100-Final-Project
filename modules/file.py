@@ -1,80 +1,106 @@
 import logging
-import os
-from datetime import date
-from tkinter import filedialog
+import pprint
 
-# this method will go through the process of creating a file
-def create_file(log: logging) -> tuple | None:
-    print("Let's create a new file!")
+# constants
+INSTRUCT, SCORE, VOICE, OCTAVE, MUTATION, BEATS = "instruct", "score", "voice", "octave", "mutation", "beats"
+NOTES = ["ut", "re", "me", "fa", "sol", "la", "ut+", "re+", "me+", "fa+", "sol+", "la+", "-"]
 
-    # get file details
-    print("What would you like to name the file?")
-    file_name = input("> ")
+## MAIN FUNCTION ##
+def process_file(filepath: str) -> dict | list:
+    voices = []
+    file_data = {"title": None, "composer": None, "letter": None}
 
-    piece_name = input("\nWhat do you want your piece to be called?\n> ")
-    piece_athor = input("\nWhat is the name of the composer?\n> ")
+    mode = None
+    octave = None
+    mutation = None
+    beats = None
+    voice = -1
 
-    while True:
-        significant_letter = input("\nWhat is your significant letter? [a-z]\n> ")
-        if significant_letter.isalpha():
-            significant_letter.upper()
-            break
-        print("Must be between [A-Z/a-z]!")
-
-    while True:
-        print("\nWould you like to store the file?")
-        directory = filedialog.askdirectory()  
-        if directory:
-            break
-        print("Error fetching path, try again.")
+    with open(filepath, "r") as MUSIC_FILE:
+        for line in MUSIC_FILE.readlines():
+            # clean line for algorithm
+            line = line.strip()
+            if not line or line == "}" or line[0] == "#":
+                continue
+            tokens = line.split(" ")
+            tokens = [token for token in tokens if token]
 
 
-    # create file
-    try:
-        file_path = os.path.join(directory, f"{file_name}.organum")
-        with open(file_path, "w") as file:
-            # write ignore
-            file.write("\ignore {\n")
-            file.write(f"\tcreated {date.today()}")
-            file.write("}\n\n")
+            # mode change
+            if tokens[0].startswith("\\"):
+                mode, octave, mutation, beats, voice = change_mode(mode, tokens, voices, octave, mutation, beats, voice)
+                # error detected
+                if mode == None: 
+                    logging.error("mode not found")
+                continue
+            
+            # process mode
+            if mode == INSTRUCT:
+                update_file_data(tokens, file_data)
+            elif mode == VOICE:
+                update_voices(tokens, voices[voice], octave, mutation, beats)
 
-            # write file instructions
-            file.write("\instruct {\n")
-            file.write(f"\ttitle = {piece_name}\n")
-            file.write(f"\tauthor = {piece_athor}\n")
-            file.write(f"\tsignificant_letter = {significant_letter}\n")
-            file.write("}\n\n")
+    return file_data, voices
 
-            # start music 
-            file.write("\music {\n")
-            file.write("}\n\n")
-        
-        print("\nFile created! Editor opening now...")
-        return (file_name, file_path)
+## HELPER FUNCTION ##
+def change_mode(mode: str, tokens: list, voices: list, octave: int, mutation: str, beats: int, voice: int) -> tuple:
+    # get token and compare
+    command = tokens[0].split("\\")[1].strip()
+
+    # change mode
+    if command == INSTRUCT: return (INSTRUCT, octave, mutation, beats, voice)
+    elif command == SCORE: return (SCORE, octave, mutation, beats, voice)
+    elif command == VOICE:
+        voice += 1
+        voices.append([])
+        return (VOICE, octave, mutation, 1, voice)
+    elif command == OCTAVE: return (mode, int(tokens[1]), mutation, beats, voice)
+    elif command == MUTATION: return (mode, octave, str(tokens[1]), beats, voice)
+    elif command == BEATS: return (mode, octave, mutation, str(tokens[1]), voice)
     
-    except Exception as e:
-        log.error(f"Unknown error [{e}]")
-        return None
+    # mode note found
+    return (None, octave, mutation, beats, voice)
 
-# this method will open a file
-def open_file(log: logging) -> tuple | None:
-    print("Let's find your existing file!")
+def update_file_data(tokens: "list[str]", file_data: dict) -> None:
+    key = tokens[0].rstrip(":")
+    value = " ".join(tokens[1:]).strip()
+    if key in file_data:
+        file_data[key] = value
 
-    # get file details
-    print("Where is your file stored? ['.organum' files only]")
-    try:
-        file_path = filedialog.askopenfilename(
-            title="Select .organum file",
-            filetypes=[("Organum files", "*.organum")]
-        )
-    except Exception as e:
-        log.error(f"Unknown error [{e}]")
+def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mutation: str, beats: str) -> None:
+    # find dot
+    num_dots = beats.count("*")
+    if num_dots > 0:
+        beats = beats[:beats.find("*")]
 
-    if file_path and validate_file(file_path):
-        file_name = os.path.basename(file_path)
-        return (file_path, file_name)
-    
-    return None
+    # fraction or whole
+    if beats.find("/") >= 0:
+        try:
+            n, d = beats.split("/")
+            duration = float(n) / float(d) * 4
+        except:
+            logging.error(f"improper beat length for voice with notes {(" ").join(tokens)}")
+            duration = 1
+    else: duration = float(beats)
 
-def validate_file(file_path: str) -> bool:
-    return True
+    # add dots
+    for _ in range(num_dots):
+        duration += duration / 2
+
+    for note in tokens:
+        if note not in NOTES:
+            continue
+        note_info = parse_note(note, duration, octave, mutation)
+        voice_data.append(note_info)
+
+def parse_note(note: str, duration: float, octave: int, mutation: str) -> dict:
+    # rest 
+    if note == "-":
+        return {"type": "rest", "duration": duration}
+    # note
+    return {"type": "note", "note": note, "duration": duration, "octave": octave, "mutation": mutation}
+
+
+# x, y = process_file("modules/J'ai_mis__Je_n'en_puis__Puerorum.organum")
+
+# pprint.pprint(y)
