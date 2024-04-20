@@ -156,15 +156,21 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
     # convert music to waveform
     for note in music:
         # handle note
+        
         if note["type"] == "note":
-            
-            # clean note
-            join = note["note"].endswith("+") 
-            music_note = note["note"].rstrip("+")
+            waveforms = []
 
-            # generate frequency and waveform
-            frequency = generate_frequency(music_note, note["octave"], note["mutation"])
-            waveform = generate_sound_waveform(frequency, note["duration"])
+            for chord_note in note["note"]:
+                # clean note
+                join = chord_note.endswith("+") 
+                music_note = chord_note.rstrip("+")
+
+                # generate frequency and waveform
+                frequency = generate_frequency(music_note, note["octave"], note["mutation"])
+                waveforms.append(generate_sound_waveform(frequency, note["duration"]))
+
+            # mix wave forms if needed
+            waveform = mix_waveforms(waveforms) if len(note["note"]) > 1 else waveforms[0]
 
             # add to current
             if join and current_waveform is not None:
@@ -234,4 +240,5 @@ def play(filepath: str):
 
 
 # play("modules/test.organum")
-play("modules/J'ai_mis__Je_n'en_puis__Puerorum.organum")
+# play("modules/J'ai_mis__Je_n'en_puis__Puerorum.organum")
+play("modules/chords.organum")
