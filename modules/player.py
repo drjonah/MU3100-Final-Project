@@ -1,32 +1,6 @@
 import numpy as np
 import pyaudio
-import threading
-import matplotlib.pyplot as plt
-# from modules.voice import Voice
-
-## STREAM FUNCTIONS ##
-def play(waveform: np.float32, start_event: threading.Event, stream: pyaudio.Stream) -> None:
-    """This takes a waveform and plays it when the start event is triggered
-
-    Args:
-        waveform (np.float32): waveform for current note
-        start_event (threading.Event): threading event
-        stream (pyaudio.Stream): stream for pyaudio
-    """
-    # Wait for the threading event to start.
-    # This happens after each voice is initialized
-    start_event.wait()
-
-    # Play waveform
-    stream.write(waveform.tobytes())
-    
-def setup_stream(p: pyaudio.PyAudio) -> pyaudio.Stream:
-    """This sets up PyAudio stream and returns the stream object
-
-    Returns:
-        pyaudio.Stream: PyAudio stream object
-    """
-    return p.open(format=pyaudio.paFloat32, channels=1, rate=44100, output=True)
+from file import process_file
 
 ## WAVEFORM GENERATION AND ALTERATIONS ##
 def fade_waveform(waveform: np.float32) -> np.float32:
@@ -63,7 +37,7 @@ def add_slur(waveform1: np.float32, waveform2: np.float32) -> np.float32:
         np.float32: this is the new waveform with fade applied
     """
     rate = 44100  # Sample rate
-    transition_samples = int(rate * 0.05)  # Number of samples over which to transition
+    transition_samples = int(rate * 0.02)  # Number of samples over which to transition
 
     # Create transition window
     transition_window = np.linspace(0, 1, transition_samples)
@@ -80,12 +54,34 @@ def add_slur(waveform1: np.float32, waveform2: np.float32) -> np.float32:
 
     return combined_waveform.astype(np.float32)
 
-def generate_sound_waveform(frequency: float, duration=0.5, volume=1) -> np.float32:
+def mix_waveforms(waveforms: "list[np.ndarray]") -> np.ndarray:
+    """This will take waveforms and overlay them so that they are a single waveform file
+
+    Args:
+        waveforms (list[np.ndarray]): this is the array of all waveform files
+
+    Returns:
+        np.ndarray: a single combined waveform
+    """
+    max_len = max(len(waveform) for waveform in waveforms) if len(waveforms) > 0 else len(waveforms)
+
+    # array of zeros of the maximum length for the mixed audio
+    mixed_audio = np.zeros(max_len, dtype=np.float32)
+
+    # pad each waveform to the max length for safety and add it to the mixed_audio
+    for waveform in waveforms:
+        padded_waveform = np.pad(waveform, (0, max_len - len(waveform)), mode='constant')
+        mixed_audio += padded_waveform
+
+    # Scale down by the number of waveforms to keep average amplitude similar to the original
+    return mixed_audio / len(waveforms)
+
+def generate_sound_waveform(frequency: float, duration, volume=1) -> np.float32:
     """This generates a notes waveform based on frequency
 
     Args:
         frequency (float): frequncy for given note
-        duration (float, optional): duration for the note. Defaults to 0.5.
+        duration (float, optional): duration for the note.
         volume (int, optional): volume for the note. Defaults to 1.
 
     Returns:
@@ -95,7 +91,7 @@ def generate_sound_waveform(frequency: float, duration=0.5, volume=1) -> np.floa
     waveform = volume * np.sin(2 * np.pi * frequency * t)
     return waveform.astype(np.float32)
 
-def generate_rest_waveform(duration=0.5) -> np.float32:
+def generate_rest_waveform(duration) -> np.float32:
     """This generates a rest waveform based on frequency
 
     Args:
@@ -110,39 +106,41 @@ def generate_rest_waveform(duration=0.5) -> np.float32:
     silence_waveform = np.zeros(num_samples, dtype=np.float32)
     return silence_waveform
 
-def generate_frequency(note: int, octave: int, mutation: int) -> float:
+def generate_frequency(note: str, octave: int, mutation: int) -> float:
     """This generates the frequency for a note on a variety of factors
 
     Args:
-        note (int): this is what hexachord note to play
+        note (str): this is what hexachord note to play
         octave (int): this is how many octaves about the default hexachord octave
         mutation (int): this determines the frequency based on medival hexachord
 
     Returns:
         float: frequency for parameters
     """
-    #                     G   c    f    g    c'   f'   g'
-    # c' is equal to middle c
-    # in hz
-    hexachord_frequency = [98, 130, 174, 196, 262, 349, 392]
-    note_to_semitone = {
-        0: 0,
-        1: 2,
-        2: 4,
-        3: 5,
-        4: 7,
-        5: 9
+    to_mutation = {
+        "G": 98,
+        "c": 130,
+        "f": 174,
+        "g": 196,
+        "c'": 262,
+        "f'": 349,
+        "g'": 392
     }
+    to_semitone = {
+        "ut": 0,
+        "re": 2,
+        "me": 4,
+        "fa": 5,
+        "sol": 7,
+        "la": 9
+    }
+    semitone = to_semitone[note] if note in to_semitone.keys() else to_semitone["ut"]
+    hexachord = to_mutation[mutation] if mutation in to_mutation.keys() else to_mutation["c'"]
 
-    semitone = note_to_semitone[note]
-    mutation += 4
+    # calculate and return frequency
+    return (hexachord) * (2**(semitone/12)) * (2**octave)
 
-    #            starting frequency                change semi tone      change octave
-    frequency = (hexachord_frequency[mutation]) * (2**(semitone/12)) * (2**octave)
-
-    return frequency
-
-def generate_music(music: "list[dict]") -> np.ndarray:
+def music_to_waveform(music: "list[dict]") -> np.ndarray:
     """This is the main function to translate music notation to a single waveform
 
     Args:
@@ -152,23 +150,28 @@ def generate_music(music: "list[dict]") -> np.ndarray:
         np.ndarray: returned waveform
     """
     # note array for all the note waveforms
-    notes = []
+    voice = []
     # keeps record for joined waveforms
     current_waveform = None
     # convert music to waveform
     for note in music:
         # handle note
         if note["type"] == "note":
+            
+            # clean note
+            join = note["note"].endswith("+") 
+            music_note = note["note"].rstrip("+")
+
             # generate frequency and waveform
-            frequency = generate_frequency(note["note"], note["octave"], note["mutation"])
-            waveform = generate_sound_waveform(frequency, duration=1)
+            frequency = generate_frequency(music_note, note["octave"], note["mutation"])
+            waveform = generate_sound_waveform(frequency, note["duration"])
 
             # add to current
-            if note["join"] == True and current_waveform is not None:
+            if join and current_waveform is not None:
                 current_waveform = add_slur(current_waveform, waveform)
 
             # join but none detected
-            elif note["join"] == True:
+            elif join:
                 current_waveform = waveform
 
             else:
@@ -177,119 +180,58 @@ def generate_music(music: "list[dict]") -> np.ndarray:
                     current_waveform = add_slur(current_waveform, waveform)
                     current_waveform = fade_waveform(current_waveform)
                     # return
-                    notes.append(current_waveform)
+                    voice.append(current_waveform)
                     current_waveform = None
                 # regular note
                 else:
                     waveform = fade_waveform(waveform)
-                    notes.append(waveform)
+                    voice.append(waveform)
 
         # handle rest
         elif note["type"] == "rest":
             # generate rest waveform
-            rest_waveform = generate_rest_waveform()
+            rest_waveform = generate_rest_waveform(note["duration"])
             # reset join because a rest cant be joined
             if current_waveform is not None:
-                notes.append(current_waveform)
+                voice.append(current_waveform)
                 current_waveform = None
             # add rest
-            notes.append(rest_waveform)
+            voice.append(rest_waveform)
 
     # check if last note was meant to be joined
     if current_waveform is not None:
-        notes.append(current_waveform)
+        voice.append(current_waveform)
 
     # generate rest buffer
-    notes.append(generate_rest_waveform(duration=1))
+    voice.append(generate_rest_waveform(duration=1))
 
     # make one waveform
-    return np.concatenate(notes)
+    return np.concatenate(voice)
 
 ## MAIN ##
-def main():
+def play(filepath: str):
     # pyaudio 
+    print("preparing audio stream...")
     p = pyaudio.PyAudio()
-
-    # voices
-    voice1 = [
-        {"type": "note", "note": 0, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 1, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 2, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 5, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "rest"},
-
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 1, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 2, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 5, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-
-    ]
-    voice2 = [
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-
-        {"type": "note", "note": 1, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 1, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 3, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 4, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 2, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 1, "octave": 0, "mutation": 0, "join": False},
-        {"type": "note", "note": 0, "octave": 0, "mutation": 0, "join": True},
-        {"type": "note", "note": 1, "octave": 0, "mutation": 0, "join": False},
-    ]
+    stream = p.open(format=pyaudio.paFloat32, channels=1, rate=44100, output=True)
 
     # prepare
-    organum = [voice1, voice2]
-    num_organum = len(organum)
-    organum = [generate_music(voice) for voice in organum]
-    streams = [setup_stream(p) for _ in range(num_organum)]
+    print("reading organum file...")
+    file_data, organum = process_file(filepath)
 
-    # Create a threading event
-    start_event = threading.Event()
+    print("generating waveform...")
+    organum = [music_to_waveform(voice) for voice in organum] # generate the waveforms for each voice
 
-    # Create threads
-    threads = []
-    for i in range(num_organum):
-        t = threading.Thread(target=play, args=(organum[i], start_event, streams[i]))
-        t.start()
-        threads.append(t)
+    print("mixing waveforms...")
+    mixed_waveform = mix_waveforms(organum)
 
-    # Trigger start
-    start_event.set()
+    print(f"playing \"{file_data["title"]}\" by {file_data["composer"]}...")
+    stream.write(mixed_waveform.tobytes())
 
-    # Wait for both threads to complete
-    for thread in threads:
-        thread.join()
-    # Clean up PyAudio and close streams
-    for stream in streams:
-        stream.close()
-    # terminate pyaudio
-    p.terminate()
+    print("done!")
+    stream.close() # Clean up PyAudio and close streams
+    p.terminate() # terminate pyaudio
 
-if __name__ == "__main__":
-    main()
+
+# play("modules/test.organum")
+play("modules/J'ai_mis__Je_n'en_puis__Puerorum.organum")
