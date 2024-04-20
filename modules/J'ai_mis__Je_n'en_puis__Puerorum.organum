@@ -1,0 +1,64 @@
+
+\instruct {
+    title: J'ai mis - Je n'en puis - Puerorum
+    composer: Franconian Motet
+    letter: F
+}
+
+\score {
+
+    \voice {
+        \octave 0
+
+        # measure 1
+        \mutation c'
+        fa4.
+
+        \mutation g
+        me
+        
+        \mutation c'
+        re+8 me fa
+
+        #measure 2
+        me la la la4. fa
+
+        # measure 3
+        re8 me re ut 
+
+        \mutation g
+        me
+
+        \mutation c'
+        ut re4.
+    }
+
+    \voice {
+        \octave 0
+        \mutation c'
+
+        # measure 1
+        fa4. fa fa8 me re
+
+        # measure 2
+        me2. fa4.
+
+        # measure 3
+        sol2. fa4.
+    }
+
+    \voice {
+        \octave -1
+        \mutation g
+
+        # measure 1
+        me2..
+
+        # measure 2
+        re
+
+        # measure 3
+        ut
+
+    }
+}

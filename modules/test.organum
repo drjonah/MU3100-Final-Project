@@ -1,0 +1,45 @@
+
+\instruct {
+    title: opera
+    composer: your mom sebastian bach
+    letter: o
+}
+
+\score {
+
+    \voice {
+        \octave 0
+        \mutation c'
+
+        ut+8 re
+        me fa
+        fa+ sol+
+        fa me+
+        fa+16 ut+ fa+ ut
+        - -
+    }
+
+    \voice {
+        \octave 0
+        \mutation c'
+
+        fa8 fa
+        fa fa
+        fa me
+        me me
+        me me+
+        fa+ fa+
+    }
+
+    \voice {
+        \octave -1
+        \mutation c'
+
+        ut+8 ut+
+        ut+ ut+
+        ut+ ut+
+        ut+ ut+
+        ut+ ut+
+        ut+ -
+    }
+}

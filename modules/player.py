@@ -1,6 +1,6 @@
 import numpy as np
 import pyaudio
-from file import process_file
+from modules.compiler import process_file
 
 ## WAVEFORM GENERATION AND ALTERATIONS ##
 def fade_waveform(waveform: np.float32) -> np.float32:
@@ -154,55 +154,57 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
     # keeps record for joined waveforms
     current_waveform = None
     # convert music to waveform
-    for note in music:
-        # handle note
-        
-        if note["type"] == "note":
-            waveforms = []
+    for chord in music:
+        waveforms = []
 
-            for chord_note in note["note"]:
+        for note in chord:
+            # handle note
+            if note["type"] == "note":
                 # clean note
-                join = chord_note.endswith("+") 
-                music_note = chord_note.rstrip("+")
+                join = note["note"].endswith("+") 
+                music_note = note["note"].rstrip("+")
 
                 # generate frequency and waveform
                 frequency = generate_frequency(music_note, note["octave"], note["mutation"])
-                waveforms.append(generate_sound_waveform(frequency, note["duration"]))
+                waveform = generate_sound_waveform(frequency, note["duration"])
 
-            # mix wave forms if needed
-            waveform = mix_waveforms(waveforms) if len(note["note"]) > 1 else waveforms[0]
-
-            # add to current
-            if join and current_waveform is not None:
-                current_waveform = add_slur(current_waveform, waveform)
-
-            # join but none detected
-            elif join:
-                current_waveform = waveform
-
-            else:
-                # no join detected but previous exists to cross fade
-                if current_waveform is not None:
+                # add to current
+                if join and current_waveform is not None:
                     current_waveform = add_slur(current_waveform, waveform)
-                    current_waveform = fade_waveform(current_waveform)
-                    # return
-                    voice.append(current_waveform)
-                    current_waveform = None
-                # regular note
-                else:
-                    waveform = fade_waveform(waveform)
-                    voice.append(waveform)
 
-        # handle rest
-        elif note["type"] == "rest":
-            # generate rest waveform
-            rest_waveform = generate_rest_waveform(note["duration"])
-            # reset join because a rest cant be joined
-            if current_waveform is not None:
-                voice.append(current_waveform)
-                current_waveform = None
-            # add rest
-            voice.append(rest_waveform)
+                # join but none detected
+                elif join:
+                    current_waveform = waveform
+
+                else:
+                    # no join detected but previous exists to cross fade
+                    if current_waveform is not None:
+                        current_waveform = add_slur(current_waveform, waveform)
+                        current_waveform = fade_waveform(current_waveform)
+                        # return
+                        waveforms.append(current_waveform)
+                        current_waveform = None
+                    # regular note
+                    else:
+                        waveform = fade_waveform(waveform)
+                        waveforms.append(waveform)
+
+            # handle rest
+            elif note["type"] == "rest":
+                # generate rest waveform
+                rest_waveform = generate_rest_waveform(note["duration"])
+                # reset join because a rest cant be joined
+                if current_waveform is not None:
+                    waveforms.append(current_waveform)
+                    current_waveform = None
+                # add rest
+                waveforms.append(rest_waveform)
+
+        if len(waveforms) == 0:
+            continue
+
+        note_waveform = mix_waveforms(waveforms) if len(waveforms) > 1 else waveforms[0]
+        voice.append(note_waveform) 
 
     # check if last note was meant to be joined
     if current_waveform is not None:
