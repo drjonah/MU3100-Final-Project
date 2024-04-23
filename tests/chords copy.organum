@@ -1,0 +1,41 @@
+\instruct {
+    title: i love taco bell
+    composer: jp morgan
+}
+
+\score {
+    \voice {
+        \octave 0
+
+        # 1 
+        \mutation f
+        ut8.
+        < ut me >
+        < ut me sol >
+        < ut me sol
+        \mutation c'
+        fa >
+
+        < ut
+        \mutation f 
+        me ut >
+        < ut me >
+        ut
+
+        # 2 
+        \mutation c'
+        ut
+        < ut me >
+        < ut me sol >
+        < ut me sol
+        \mutation f'
+        sol
+        >
+
+        \mutation c'
+        < ut me sol >
+        < ut me >
+        ut
+    }
+}
+
