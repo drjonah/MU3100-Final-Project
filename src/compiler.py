@@ -2,7 +2,7 @@ import logging, re
 
 # constants
 INSTRUCT, SCORE, VOICE, OCTAVE, MUTATION = "instruct", "score", "voice", "octave", "mutation"
-NOTES = ["ut", "re", "me", "fa", "sol", "la", "ut+", "re+", "me+", "fa+", "sol+", "la+", "-", ">"]
+NOTES = ["ut", "re", "mi", "fa", "sol", "la", "ut+", "re+", "mi+", "fa+", "sol+", "la+", "-", ">"]
 
 ## MAIN FUNCTION ##
 def compile_score(filepath: str) -> dict | list:
@@ -41,6 +41,7 @@ def compile_score(filepath: str) -> dict | list:
             elif mode == VOICE:
                 duration, chords = update_voices(tokens, voices[voice], octave, mutation, duration, chords)
 
+    print(voices)
     return file_data, voices
 
 ## HELPER FUNCTION ##

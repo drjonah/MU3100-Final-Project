@@ -1,9 +1,8 @@
-
+from src import App
 
 def main() -> None:
-    # notator = Notator()
-    # notator.run()
-    pass
+    app = App()
+    app.mainloop()
 
 if __name__ == '__main__':
     main()

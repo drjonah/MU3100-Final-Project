@@ -10,7 +10,7 @@ PATH = os.path.join(cd__, "assets")
 BUTTON_WIDTH = 140
 BUTTON_PADDING = 5
 IMAGE_SIZE = (20, 20)
-DIRECTION_IMAGE_SIZE = (460, 550)
+DIRECTION_IMAGE_SIZE = (550, 650)
 
 GITHUB = "https://github.com/drjonah/MU3100-Final-Project"
 WIKI = "https://en.wikipedia.org/wiki/Guidonian_hand"
@@ -19,7 +19,7 @@ PAPER = "https://google.com/"
 class HelpInformation(customtkinter.CTkToplevel):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.geometry("500x600")
+        self.geometry("600x700")
         self.title("Guido's Organum | MU 3100")
         self.resizable(False, False)
 
@@ -30,11 +30,11 @@ class HelpInformation(customtkinter.CTkToplevel):
         self.grid_columnconfigure(3, weight=1)
 
         # images
-        self.img_github = customtkinter.CTkImage(Image.open(f"{PATH}/github.png").resize(IMAGE_SIZE))
-        self.img_download = customtkinter.CTkImage(Image.open(f"{PATH}/download.png").resize(IMAGE_SIZE))
-        self.img_wiki = customtkinter.CTkImage(Image.open(f"{PATH}/wiki.png").resize(IMAGE_SIZE))
-        self.img_paper = customtkinter.CTkImage(Image.open(f"{PATH}/paper.png").resize(IMAGE_SIZE))
-        self.img_help = customtkinter.CTkImage(Image.open(f"{PATH}/hand.jpg"), size=DIRECTION_IMAGE_SIZE)
+        self.img_github = customtkinter.CTkImage(Image.open(f"{PATH}/github.png"))
+        self.img_download = customtkinter.CTkImage(Image.open(f"{PATH}/download.png"))
+        self.img_wiki = customtkinter.CTkImage(Image.open(f"{PATH}/wiki.png"))
+        self.img_paper = customtkinter.CTkImage(Image.open(f"{PATH}/paper.png"))
+        self.img_help = customtkinter.CTkImage(Image.open(f"{PATH}/directions.png"), size=DIRECTION_IMAGE_SIZE)
 
         # example
         self.example_file_name = "example.organum"

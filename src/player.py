@@ -128,7 +128,7 @@ def generate_frequency(note: str, octave: int, mutation: int) -> float:
     to_semitone = {
         "ut": 0,
         "re": 2,
-        "me": 4,
+        "mi": 4,
         "fa": 5,
         "sol": 7,
         "la": 9
@@ -156,12 +156,15 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
     # convert music to waveform
     for chord in music:
         waveforms = []
+        # do not allow slurs in a chord
+        canSlur = False if len(chord) > 1 else True
+        isChord = True if len(chord) > 1 else False
 
         for note in chord:
             # handle note
             if note["type"] == "note":
                 # clean note
-                join = note["note"].endswith("+") 
+                join = True if note["note"].endswith("+") and canSlur else False
                 music_note = note["note"].rstrip("+")
 
                 # generate frequency and waveform
@@ -178,7 +181,7 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
 
                 else:
                     # no join detected but previous exists to cross fade
-                    if current_waveform is not None:
+                    if current_waveform is not None and not isChord:
                         current_waveform = add_slur(current_waveform, waveform)
                         current_waveform = fade_waveform(current_waveform)
                         # return
@@ -203,7 +206,15 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
         if len(waveforms) == 0:
             continue
 
+        # get our note end product
         note_waveform = mix_waveforms(waveforms) if len(waveforms) > 1 else waveforms[0]
+
+        # check to see if there was a slur to the chord
+        if isChord and current_waveform is not None:
+            note_waveform = add_slur(current_waveform, note_waveform)
+            note_waveform = fade_waveform(note_waveform)
+            current_waveform = None
+
         voice.append(note_waveform) 
 
     # check if last note was meant to be joined
@@ -215,12 +226,6 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
 
     # make one waveform
     return np.concatenate(voice)
-
-# def get_waveform(organum: list):
-#     organum = [music_to_waveform(voice) for voice in organum] # generate the waveforms for each voice
-#     mixed_waveform = mix_waveforms(organum)
-
-#     return mixed_waveform
 
 ## MAIN ##
 def play(organum: list):

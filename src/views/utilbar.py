@@ -1,10 +1,10 @@
 import customtkinter, os
 from PIL import Image
 from tkinter.filedialog import askopenfilename, askdirectory
-from compiler import compile_score
-from player import play
-from views.scoreInformation import ScoreInformation
-from views.help import HelpInformation
+from src.compiler import compile_score
+from src.player import play
+from src.views.scoreInformation import ScoreInformation
+from src.views.HelpInformation import HelpInformation
 
 # Initialize PATH for assets
 cd = os.path.dirname(os.path.abspath(__file__))
@@ -26,7 +26,6 @@ class UtilBar(customtkinter.CTkFrame):
         self.grid_columnconfigure(2, weight=1)
         self.grid_columnconfigure(3, weight=1)
         self.grid_columnconfigure(4, weight=1)
-        # self.grid_columnconfigure(5, weight=1)
 
         # Initialize images
         self.img_play = customtkinter.CTkImage(Image.open(f"{PATH}/play.png").resize(IMAGE_SIZE))
@@ -149,11 +148,15 @@ class UtilBar(customtkinter.CTkFrame):
 
         # call add tab in filetab.py
         self.master.tab_view.add_tab(file_name, file_path)
+        self.master.tab_view.set(file_name)
 
     def listen_close_tab(self):
         # call close tab in filetab.py
         self.master.tab_view.close_tab(self.master.tab_view.get())
 
     def listen_help_tab(self):
-        HelpInformation()
+        if not hasattr(self, 'help_information') or not self.help_information or not self.help_information.winfo_exists():
+            self.help_information = HelpInformation()
+        else:
+            self.help_information.focus()
             

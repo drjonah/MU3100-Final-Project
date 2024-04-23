@@ -1,2 +1,2 @@
-from views.filetab import FileTabs
-from views.utilbar import UtilBar
+from src.views.filetab import FileTabs
+from src.views.utilbar import UtilBar

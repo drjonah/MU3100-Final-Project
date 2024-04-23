@@ -2,7 +2,6 @@
 \instruct {
     title: J'ai mis - Je n'en puis - Puerorum
     composer: Franconian Motet
-    letter: F
 }
 
 \score {
@@ -20,7 +19,7 @@
         \mutation c'
         re+8 me fa
 
-        #measure 2 (test)
+        #measure 2
         me la la la4. fa
 
         # measure 3
@@ -62,3 +61,4 @@
 
     }
 }
+

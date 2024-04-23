@@ -1,5 +1,5 @@
 import customtkinter
-from views import FileTabs, UtilBar
+from src.views import FileTabs, UtilBar
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -17,7 +17,3 @@ class App(customtkinter.CTk):
         # file tab bar
         self.tab_view = FileTabs(master=self)
         self.tab_view.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
-
-
-app = App()
-app.mainloop()
