@@ -37,8 +37,8 @@ class HelpInformation(customtkinter.CTkToplevel):
         self.img_help = customtkinter.CTkImage(Image.open(f"{PATH}/directions.png"), size=DIRECTION_IMAGE_SIZE)
 
         # example
-        self.example_file_name = "example.organum"
-        self.example_file_path = PATH + "/" + self.example_file_name
+        self.example_file_name = "example"
+        self.example_file_path = PATH + "/" + self.example_file_name + ".organum"
 
         # load image
         direction_image = customtkinter.CTkLabel(
@@ -91,3 +91,4 @@ class HelpInformation(customtkinter.CTkToplevel):
 
     def open_example(self):
         self.master.tab_view.add_tab(self.example_file_name, self.example_file_path)
+        self.master.tab_view.tab(self.example_file_name).textbox.configure(state="disabled")

@@ -41,7 +41,6 @@ def compile_score(filepath: str) -> dict | list:
             elif mode == VOICE:
                 duration, chords = update_voices(tokens, voices[voice], octave, mutation, duration, chords)
 
-    print(voices)
     return file_data, voices
 
 ## HELPER FUNCTION ##

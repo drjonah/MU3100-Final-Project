@@ -4,7 +4,7 @@ from tkinter.filedialog import askopenfilename, askdirectory
 from src.compiler import compile_score
 from src.player import play
 from src.views.scoreInformation import ScoreInformation
-from src.views.HelpInformation import HelpInformation
+from src.views.helpInformation import HelpInformation
 
 # Initialize PATH for assets
 cd = os.path.dirname(os.path.abspath(__file__))
