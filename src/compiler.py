@@ -2,7 +2,7 @@ import logging, re
 
 # constants
 INSTRUCT, SCORE, VOICE, OCTAVE, MUTATION = "instruct", "score", "voice", "octave", "mutation"
-NOTES = ["ut", "re", "mi", "fa", "sol", "la", "ut+", "re+", "mi+", "fa+", "sol+", "la+", "-", ">"]
+NOTES = ["ut", "re", "mi", "fa", "sol", "la", "ut+", "re+", "mi+", "fa+", "sol+", "la+", "-"]
 
 ## MAIN FUNCTION ##
 def compile_score(filepath: str) -> dict | list:
@@ -71,12 +71,19 @@ def update_file_data(tokens: "list[str]", file_data: dict) -> None:
 
 def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mutation: str, duration: int, chords: list) -> int | list:
     """This method will transpose each note to readable notes for the player."""
+    start_chord = False
+    end_chord = False
+
     # go through the notes
     for note in tokens:
         # check for the start of a chord
         if note.count("<") > 0:
             note = note.replace("<", "")
-            chords.append("<")
+            start_chord = True
+
+        if note.count(">") > 0:
+            note = note.replace(">", "")
+            end_chord = True
 
         # check if note has beats and change the duration
         if re.search("[0-9]", note):
@@ -94,7 +101,7 @@ def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mut
             # calculate beat
             for _ in range(num_dots):  duration += duration / 2
 
-        if note not in NOTES:
+        if note not in NOTES and not end_chord:
             continue
 
         # create note and add to chords
@@ -102,16 +109,17 @@ def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mut
         chords.append(note_info)
         
         # skip if we are in the middle of a chord
-        if chords[0] == "<" and note != ">":
+        if start_chord and not end_chord:
             continue
-        
-        # remove special characters
-        if chords[0] == "<": del chords[0]
-        if chords[-1]["type"] == "note" and chords[-1]["note"] == ">": del chords[-1]
+
+        if chords[-1] == " ": del chords[-1]
 
         # add chord to coice data and clear
         voice_data.append(chords.copy())
         chords.clear()
+
+        start_chord = False
+        end_chord = False
 
     return duration, chords
 
