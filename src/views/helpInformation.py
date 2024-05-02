@@ -89,6 +89,9 @@ class HelpInformation(customtkinter.CTkToplevel):
         )
         self.download_button.grid(row=1, column=3, padx=BUTTON_PADDING, pady=BUTTON_PADDING)
 
+        # escape key
+        self.bind("<Escape>", lambda event: self.destroy())
+
     def open_example(self):
         self.master.tab_view.add_tab(self.example_file_name, self.example_file_path)
         self.master.tab_view.tab(self.example_file_name).textbox.configure(state="disabled")

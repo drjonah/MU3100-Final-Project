@@ -1,7 +1,7 @@
 import logging, re
 
 # constants
-INSTRUCT, SCORE, VOICE, OCTAVE, MUTATION = "instruct", "score", "voice", "octave", "mutation"
+INSTRUCT, SCORE, VOICE, OCTAVE, MUTATION, BPM = "instruct", "score", "voice", "octave", "mutation", "bpm"
 NOTES = ["ut", "re", "mi", "fa", "sol", "la", "ut+", "re+", "mi+", "fa+", "sol+", "la+", "-"]
 
 ## MAIN FUNCTION ##
@@ -13,9 +13,12 @@ def compile_score(filepath: str) -> dict | list:
     mode = None
     octave = None
     mutation = None
+    bpm = 120/60 # this is normalized
     chords = []
     duration = 1
     voice = -1
+    start_chord = False
+    end_chord = False
 
     with open(filepath, "r") as MUSIC_FILE:
         for line in MUSIC_FILE.readlines():
@@ -29,7 +32,7 @@ def compile_score(filepath: str) -> dict | list:
 
             # mode change
             if tokens[0].startswith("\\"):
-                mode, octave, mutation, voice = change_mode(mode, tokens, voices, octave, mutation, voice)
+                mode, octave, mutation, bpm, voice = change_mode(mode, tokens, voices, octave, mutation, bpm, voice)
                 # error detected
                 if mode == None: 
                     logging.error("mode not found")
@@ -39,28 +42,33 @@ def compile_score(filepath: str) -> dict | list:
             if mode == INSTRUCT:
                 update_file_data(tokens, file_data)
             elif mode == VOICE:
-                duration, chords = update_voices(tokens, voices[voice], octave, mutation, duration, chords)
+                duration, chords, start_chord, end_chord = update_voices(tokens, voices[voice], octave, mutation, bpm, duration, chords, start_chord, end_chord)
+
+    import pprint
+    pprint.pprint(voices)
+    print(bpm)
 
     return file_data, voices
 
 ## HELPER FUNCTION ##
-def change_mode(mode: str, tokens: list, voices: list, octave: int, mutation: str, voice: int) -> tuple:
+def change_mode(mode: str, tokens: list, voices: list, octave: int, mutation: str, bpm: int, voice: int) -> tuple:
     """This method reads when a mode change occurs."""
     # get token and compare
     command = tokens[0].split("\\")[1].strip()
 
     # change mode
-    if command == INSTRUCT: return (INSTRUCT, octave, mutation, voice)
-    elif command == SCORE: return (SCORE, octave, mutation, voice)
+    if command == INSTRUCT: return (INSTRUCT, octave, mutation, bpm, voice)
+    elif command == SCORE: return (SCORE, octave, mutation, bpm, voice)
     elif command == VOICE:
         voice += 1
         voices.append([])
-        return (VOICE, octave, mutation, voice)
-    elif command == OCTAVE: return (mode, int(tokens[1]), mutation, voice)
-    elif command == MUTATION: return (mode, octave, str(tokens[1]), voice)
+        return (VOICE, octave, mutation, bpm, voice)
+    elif command == OCTAVE: return (mode, int(tokens[1]), mutation, bpm, voice)
+    elif command == MUTATION: return (mode, octave, str(tokens[1]), bpm, voice)
+    elif command == BPM: return (mode, octave, mutation, int(tokens[1])/60, voice)
     
     # mode note found
-    return (None, octave, mutation, voice)
+    return (None, octave, mutation, bpm, voice)
 
 def update_file_data(tokens: "list[str]", file_data: dict) -> None:
     """This method reads when to update the file's data."""
@@ -69,10 +77,8 @@ def update_file_data(tokens: "list[str]", file_data: dict) -> None:
     if key in file_data:
         file_data[key] = value
 
-def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mutation: str, duration: int, chords: list) -> int | list:
+def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mutation: str, bpm: int, duration: int, chords: list, start_chord: bool, end_chord: bool) -> int | list:
     """This method will transpose each note to readable notes for the player."""
-    start_chord = False
-    end_chord = False
 
     # go through the notes
     for note in tokens:
@@ -98,6 +104,9 @@ def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mut
             # normalize duration
             duration = 1 / duration * 4
 
+            # take into account bpm
+            duration /= bpm
+
             # calculate beat
             for _ in range(num_dots):  duration += duration / 2
 
@@ -105,8 +114,9 @@ def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mut
             continue
 
         # create note and add to chords
-        note_info = parse_note(note, duration, octave, mutation)
-        chords.append(note_info)
+        if note:
+            note_info = parse_note(note, duration, octave, mutation)
+            chords.append(note_info)
         
         # skip if we are in the middle of a chord
         if start_chord and not end_chord:
@@ -114,14 +124,14 @@ def update_voices(tokens:"list[str]", voice_data: "list[dict]", octave: int, mut
 
         if chords[-1] == " ": del chords[-1]
 
-        # add chord to coice data and clear
+        # add chord to voice data and clear
         voice_data.append(chords.copy())
         chords.clear()
 
         start_chord = False
         end_chord = False
 
-    return duration, chords
+    return duration, chords, start_chord, end_chord
 
 def parse_note(note: str, duration: float, octave: int, mutation: str) -> dict:
     """This puts together a dictionary to house the transposed notes."""

@@ -17,3 +17,6 @@ class App(customtkinter.CTk):
         # file tab bar
         self.tab_view = FileTabs(master=self)
         self.tab_view.grid(row=1, column=0, padx=5, pady=5, sticky="nsew")
+
+        # escape key
+        self.bind("<Escape>", lambda event: self.destroy())

@@ -22,6 +22,9 @@ class ScoreInformation(customtkinter.CTkToplevel):
         self.img_replay = customtkinter.CTkImage(Image.open(f"{PATH}/replay.png").resize(IMAGE_SIZE))
         self.img_close = customtkinter.CTkImage(Image.open(f"{PATH}/close.png").resize(IMAGE_SIZE))
 
+        # escape key
+        self.bind('<Escape>', lambda event: self.destroy())
+
     def open_score(self, file_data: dict, organum: list):
         self.grid_columnconfigure(0, weight=1)
 
@@ -61,3 +64,6 @@ class ScoreInformation(customtkinter.CTkToplevel):
             command=lambda: self.destroy()
         )
         self.close_button.grid(row=2, column=1, padx=BUTTON_PADDING, pady=BUTTON_PADDING)
+
+        # bind key
+        self.bind("<Command-p>", lambda event: play(organum))

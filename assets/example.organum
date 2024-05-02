@@ -6,6 +6,8 @@
 
 \score {
 
+    \bpm 80
+
     \voice {
         \octave 0
 
@@ -13,20 +15,23 @@
         \mutation c'
         fa4.
 
+        <
         \mutation g
-        me
-        
+        mi
         \mutation c'
-        re+8 me fa
+        sol
+        >
+
+        re+8 mi fa
 
         #measure 2
-        me la la la4. fa
+        mi la la la4. fa
 
         # measure 3
-        re8 me re ut 
+        re8 mi re ut 
 
         \mutation g
-        me
+        mi
 
         \mutation c'
         ut re4.
@@ -37,10 +42,10 @@
         \mutation c'
 
         # measure 1
-        fa4. fa fa8 me re
+        fa4. fa fa8 mi re
 
         # measure 2
-        me2. fa4.
+        mi2. fa4.
 
         # measure 3
         sol2. fa4.
@@ -51,7 +56,7 @@
         \mutation g
 
         # measure 1
-        me2..
+        mi2..
 
         # measure 2
         re
@@ -61,5 +66,10 @@
 
     }
 }
+
+
+
+
+
 
 

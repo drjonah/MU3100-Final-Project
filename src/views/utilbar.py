@@ -90,6 +90,13 @@ class UtilBar(customtkinter.CTkFrame):
         )
         self.help_button.grid(row=0, column=4, padx=BUTTON_PADDING, pady=BUTTON_PADDING)
 
+        # bind key
+        self.master.bind("<Command-p>", lambda event: self.listen_play())
+        self.master.bind("<Command-n>", lambda event: self.listen_new_file())
+        self.master.bind("<Command-o>", lambda event: self.listen_open_file())
+        self.master.bind("<Command-h>", lambda event: self.listen_help_tab())
+        self.master.bind("<Command-c>", lambda event: self.listen_close_tab())
+
     def listen_play(self):
         tab_name = self.master.tab_view.get()
         file_path = self.master.tab_view.tabs[tab_name]
