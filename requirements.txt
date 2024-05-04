@@ -1,5 +1,5 @@
 # libraries
 customtkinter==5.2.2
-pyaudio==0.2.14
 Pillow==10.2.0
 numpy==1.26.4
+sounddevice== 0.4.6

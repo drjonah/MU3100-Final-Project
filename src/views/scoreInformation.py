@@ -1,6 +1,6 @@
 import customtkinter, os
 from PIL import Image
-from src.player import play
+from src.player import play, stop
 
 # Initialize PATH for assets
 cd = os.path.dirname(os.path.abspath(__file__))
@@ -20,7 +20,7 @@ class ScoreInformation(customtkinter.CTkToplevel):
         self.resizable(False, False)
 
         self.img_replay = customtkinter.CTkImage(Image.open(f"{PATH}/replay.png").resize(IMAGE_SIZE))
-        self.img_close = customtkinter.CTkImage(Image.open(f"{PATH}/close.png").resize(IMAGE_SIZE))
+        self.img_stop = customtkinter.CTkImage(Image.open(f"{PATH}/stop.png").resize(IMAGE_SIZE))
 
         # escape key
         self.bind('<Escape>', lambda event: self.destroy())
@@ -55,15 +55,16 @@ class ScoreInformation(customtkinter.CTkToplevel):
         )
         self.replay_button.grid(row=2, column=0, padx=BUTTON_PADDING, pady=BUTTON_PADDING)
 
-        self.close_button = customtkinter.CTkButton(
+        self.stop_button = customtkinter.CTkButton(
             master=self,
-            text="Close",
+            text="Stop",
             width=BUTTON_WIDTH,
-            image=self.img_close,
+            image=self.img_stop,
             compound="left",
-            command=lambda: self.destroy()
+            command=lambda: stop()
         )
-        self.close_button.grid(row=2, column=1, padx=BUTTON_PADDING, pady=BUTTON_PADDING)
+        self.stop_button.grid(row=2, column=1, padx=BUTTON_PADDING, pady=BUTTON_PADDING)
 
         # bind key
         self.bind("<Command-p>", lambda event: play(organum))
+        self.bind("<Command-s>", lambda event: stop())

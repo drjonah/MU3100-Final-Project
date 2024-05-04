@@ -1,5 +1,5 @@
 import numpy as np
-import pyaudio
+import sounddevice as sd
 
 ## WAVEFORM GENERATION AND ALTERATIONS ##
 def fade_waveform(waveform: np.float32) -> np.float32:
@@ -229,15 +229,11 @@ def music_to_waveform(music: "list[dict]") -> np.ndarray:
 
 ## MAIN ##
 def play(organum: list):
-    # pyaudio 
-    # print("preparing audio stream...")
-    p = pyaudio.PyAudio()
-    stream = p.open(format=pyaudio.paFloat32, channels=1, rate=44100, output=True)
-
+    # create sound
     organum = [music_to_waveform(voice) for voice in organum] # generate the waveforms for each voice
     mixed_waveform = mix_waveforms(organum)
 
-    stream.write(mixed_waveform.tobytes())
+    sd.play(mixed_waveform, 44100) # plays sound
 
-    stream.close() # Clean up PyAudio and close streams
-    p.terminate() # terminate pyaudio
+def stop():
+    sd.stop() # stops sound
