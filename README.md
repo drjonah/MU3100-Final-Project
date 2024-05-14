@@ -1,4 +1,3 @@
-```
 # Guido's Solfege Organum Notator.
 
 This is my final project for MU 3100. It is a polyphonic musical notator based on the Guidonian Hand (modern solfege).
@@ -30,6 +29,4 @@ Once everything is installed and you are in the same folder as the project in th
 
 ```bash
 python main.py
-```
-
 ```
